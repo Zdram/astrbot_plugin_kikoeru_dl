@@ -930,33 +930,115 @@ def _kikoeru_group_tracks(rows: list[dict]) -> list[dict]:
         rf"(?:\d+[\s:_\-.]+)?{variant_marker}{version}(?:\s*\([^)]*\))?",
         re.IGNORECASE,
     )
+    packaged_main_folder = re.compile(
+        rf"(?:[■●◆]?\s*\d+[\s:_\-.]+)?[本正][篇編编]"
+        rf"(?:\s*[『「(\[]{variant_marker}{version}[』」)\]]|{separator}{format_marker}{version})",
+        re.IGNORECASE,
+    )
+    stereo_swap_folder = re.compile(
+        rf"{format_marker}{version}{separator}左右[反翻][转轉転]{version}",
+        re.IGNORECASE,
+    )
+    wrapped_variant = rf"\s*[\(\[【]{variant_marker}{version}[\)\]】]"
+    bare_variant = rf"[\s_\-]+{variant_marker}{version}"
     title_variant = re.compile(
-        rf"\s*[\(\[【]{variant_marker}{version}[\)\]】]"
-        rf"|(?:[\s_\-]+{variant_marker}{version})+$"
+        rf"(?:{bare_variant}|{wrapped_variant})+$"
+        rf"|{wrapped_variant}"
         rf"|^(?:{variant_marker}{version}[\s_\-]+)",
         re.IGNORECASE,
     )
     tracks: dict[tuple, dict] = {}
+    packaged_chapters: dict[tuple, dict[tuple, None]] = {}
+    chapter_number = r"0*(\d+)(?:\s*[-‐–−]\s*0*(\d+))?"
+    chapter_title = re.compile(rf"(?:第\s*)?{chapter_number}\s*章")
+    dry_mix_title = re.compile(
+        rf"track[\s_\-]*{chapter_number}(?:[\s_\-]+{_KIKOERU_NO_EFFECTS})?",
+        re.IGNORECASE,
+    )
+    dry_mix_alias = re.compile(r"^(track[_ -])se[_ -](?=\d+(?:$|[_ -]))")
     for row in rows:
         stem = row["title"].rsplit(".", 1)[0]
         title = unicodedata.normalize("NFKC", stem)
         clean_title = title_variant.sub("", title).strip(" _-") or stem
         parent = []
+        packaged_main = False
         for part in row["folder"].split("/"):
             part = unicodedata.normalize("NFKC", part).strip()
+            if packaged_main_folder.fullmatch(part):
+                part = "本篇"
+                packaged_main = True
+            elif stereo_swap_folder.fullmatch(part):
+                part = "左右反转"
             if part and not folder_variant.fullmatch(part):
                 # Folders such as "Chapter 1 (MP3)" remain meaningful.
                 normalized = title_variant.sub("", part).strip(" _-")
                 if normalized:
                     parent.append(" ".join(normalized.casefold().split()))
-        key = (tuple(parent), " ".join(clean_title.casefold().split()))
+        normalized_title = " ".join(clean_title.casefold().split())
+        key = (tuple(parent), normalized_title)
         track = tracks.setdefault(key, {"title": clean_title, "variants": []})
         track["variants"].append(row)
+        if packaged_main:
+            chapter = chapter_title.match(normalized_title)
+            if not chapter and row["se"] == "无SE":
+                chapter = dry_mix_title.fullmatch(normalized_title)
+            if chapter:
+                chapter_key = (key[0], row["kind"], chapter[1], chapter[2])
+                packaged_chapters.setdefault(chapter_key, {})[key] = None
+
+    # A track set can use a generic numbered name for its dry mix.
+    candidates = [list(keys) for keys in packaged_chapters.values() if len(keys) > 1]
+    alternate_mixes: dict[tuple, list[tuple]] = {}
+    for key, track in tracks.items():
+        parent, title = key
+        dry_rows = track["variants"]
+        if any(row["se"] != "无SE" for row in dry_rows):
+            continue
+        alias = dry_mix_alias.sub(r"\1", title)
+        if alias != title and all(_kikoeru_se_label(row["folder"], "") == "无SE" for row in dry_rows):
+            target = (parent, alias)
+            kinds = {row["kind"] for row in dry_rows}
+        elif parent and parent[-1] in {"購入特典", "购买特典", "購買特典"}:
+            target = (parent[:-1], title)
+            kinds = {"正片"}
+        else:
+            continue
+        if target in tracks and any(
+            row["se"] == "有SE" and row["kind"] in kinds for row in tracks[target]["variants"]
+        ):
+            alternate_mixes.setdefault(target, []).append(key)
+    candidates.extend(
+        [target, sources[0]] for target, sources in alternate_mixes.items() if len(sources) == 1
+    )
+
+    for keys in candidates:
+        if any(key not in tracks for key in keys):
+            continue
+        target = next(
+            (
+                key for key in keys
+                if any(row["se"] == "有SE" for row in tracks[key]["variants"])
+            ),
+            None,
+        )
+        if target is None:
+            continue
+        variants = [row for key in keys for row in tracks[key]["variants"]]
+        if len({(row["format"], row["se"]) for row in variants}) != len(variants):
+            continue
+        try:
+            durations = [float(row["audio"].get("duration") or 0) for row in variants]
+        except (TypeError, ValueError):
+            continue
+        if all(duration > 0 for duration in durations) and max(durations) - min(durations) <= 1:
+            for key in keys:
+                if key != target:
+                    tracks[target]["variants"].extend(tracks.pop(key)["variants"])
     return list(tracks.values())
 
 
 def _kikoeru_kind_label(path_text: str) -> str:
-    if "特典" in path_text or "おまけ" in path_text:
+    if any(label in path_text for label in ("特典", "おまけ", "附赠", "附贈")):
         return "特典"
     if "闹钟" in path_text or "闹铃" in path_text or "アラーム" in path_text or "alarm" in path_text.lower():
         return "闹铃"

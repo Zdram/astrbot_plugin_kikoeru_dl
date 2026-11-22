@@ -1,5 +1,7 @@
 import os
+import unicodedata
 from functools import lru_cache
+from itertools import groupby
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -26,12 +28,78 @@ def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     raise OSError("No CJK font found for the Kikoeru work cards")
 
 
-def _wrap(draw: ImageDraw.ImageDraw, value: str, font: ImageFont.FreeTypeFont, width: int, limit: int | None = None) -> list[str]:
+@lru_cache(maxsize=12)
+def _symbol_fonts(size: int) -> tuple[ImageFont.FreeTypeFont, ...]:
+    windows_fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+    candidates = (
+        windows_fonts / "seguisym.ttf",
+        Path("/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/System/Library/Fonts/Apple Symbols.ttf"),
+    )
+    fonts = []
+    for candidate in candidates:
+        if candidate.is_file():
+            try:
+                fonts.append(ImageFont.truetype(str(candidate), size))
+            except OSError:
+                continue
+    return tuple(fonts)
+
+
+@lru_cache(maxsize=32)
+def _missing_glyph(font: ImageFont.FreeTypeFont) -> tuple[tuple[int, int], bytes]:
+    mask = font.getmask(chr(0x10FFFF))
+    return mask.size, bytes(mask)
+
+
+@lru_cache(maxsize=256)
+def _symbol_font(font: ImageFont.FreeTypeFont, char: str) -> ImageFont.FreeTypeFont:
+    for candidate in (font, *_symbol_fonts(font.size)):
+        mask = candidate.getmask(char)
+        if (mask.size, bytes(mask)) != _missing_glyph(candidate):
+            return candidate
+    return font
+
+
+def _text_runs(value: str, font: ImageFont.FreeTypeFont) -> list[tuple[str, ImageFont.FreeTypeFont]]:
+    return [
+        ("".join(chars), run_font)
+        for run_font, chars in groupby(
+            value,
+            key=lambda char: _symbol_font(font, char) if unicodedata.category(char).startswith("S") else font,
+        )
+    ]
+
+
+def _text_width(value: str, font: ImageFont.FreeTypeFont) -> float:
+    return sum(run_font.getlength(text) for text, run_font in _text_runs(value, font))
+
+
+def _draw_text(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int],
+    value: str,
+    font: ImageFont.FreeTypeFont,
+    fill: str,
+) -> None:
+    runs = _text_runs(value, font)
+    if len(runs) <= 1:
+        draw.text(xy, value, font=runs[0][1] if runs else font, fill=fill, anchor="lt")
+        return
+    x, top = xy
+    baseline = top - min(run_font.getbbox(text, anchor="ls")[1] for text, run_font in runs)
+    for text, run_font in runs:
+        draw.text((x, baseline), text, font=run_font, fill=fill, anchor="ls")
+        x += run_font.getlength(text)
+
+
+def _wrap(value: str, font: ImageFont.FreeTypeFont, width: int, limit: int | None = None) -> list[str]:
     lines = []
     line = ""
     for token in " ".join(value.split()):
         # Character wrapping also works for titles without spaces in CJK scripts.
-        if draw.textlength(line + token, font=font) <= width:
+        if _text_width(line + token, font) <= width:
             line += token
         else:
             lines.append(line)
@@ -40,7 +108,7 @@ def _wrap(draw: ImageDraw.ImageDraw, value: str, font: ImageFont.FreeTypeFont, w
         lines.append(line.rstrip())
     if limit and len(lines) > limit:
         lines = lines[:limit]
-        while lines[-1] and draw.textlength(lines[-1] + "…", font=font) > width:
+        while lines[-1] and _text_width(lines[-1] + "…", font) > width:
             lines[-1] = lines[-1][:-1]
         lines[-1] = lines[-1].rstrip() + "…"
     return lines
@@ -67,8 +135,7 @@ def render_work_card(
     title_font = _font(44, True)
     subtitle_font = _font(24)
     track_font = _font(22, True)
-    measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-    title_lines = _wrap(measure, item.get("work_title") or item["title"], title_font, end - left - 8)
+    title_lines = _wrap(item.get("work_title") or item["title"], title_font, end - left - 8)
     info = "  ·  ".join(
         value
         for value in (
@@ -80,9 +147,9 @@ def render_work_card(
         if value
     )
     tags = item.get("tags") or []
-    info_lines = _wrap(measure, info, subtitle_font, end - left - 48, 2)
+    info_lines = _wrap(info, subtitle_font, end - left - 48, 2)
     if tags:
-        info_lines.extend(_wrap(measure, "标签  " + " · ".join(tags), subtitle_font, end - left - 48))
+        info_lines.extend(_wrap("标签  " + " · ".join(tags), subtitle_font, end - left - 48))
 
     info_y = 123 + len(title_lines) * 56
     info_height = 42 + max(1, len(info_lines)) * 34
@@ -104,11 +171,11 @@ def render_work_card(
     draw.rounded_rectangle((left, 61, left + 153, 107), 18, fill="#e6edff")
     draw.text((left + 76, 84), badge, font=_font(22, True), fill=BLUE, anchor="mm")
     for row_index, line in enumerate(title_lines):
-        draw.text((left, 124 + row_index * 56), line, font=title_font, fill=INK, anchor="lt")
+        _draw_text(draw, (left, 124 + row_index * 56), line, title_font, INK)
 
     draw.rounded_rectangle((left, info_y, end, info_y + info_height), 18, fill=PANEL, outline=LINE, width=2)
     for row_index, line in enumerate(info_lines or ["KikoFlu 作品"]):
-        draw.text((left + 24, info_y + 23 + row_index * 34), line, font=subtitle_font, fill=MUTED, anchor="lt")
+        _draw_text(draw, (left + 24, info_y + 23 + row_index * 34), line, subtitle_font, MUTED)
 
     cover_box = (left, body_y, right - 24, body_y + 376)
     draw.rounded_rectangle(cover_box, 18, fill="#e6edfa")
@@ -140,9 +207,9 @@ def render_work_card(
         draw.rounded_rectangle((x, y, x + 47, y + 33), 8, fill="#e6edff")
         draw.text((x + 23, y + 17), f"{number:02}", font=_font(18, True), fill=BLUE, anchor="mm")
         title_x = x + 59
-        labels = _wrap(draw, row["title"], track_font, track_width - 59, 2)
+        labels = _wrap(row["title"], track_font, track_width - 59, 2)
         for line_index, label in enumerate(labels):
-            draw.text((title_x, y + line_index * 24), label, font=track_font, fill=INK, anchor="lt")
+            _draw_text(draw, (title_x, y + line_index * 24), label, track_font, INK)
         draw.line((x, y + track_height - 7, x + track_width, y + track_height - 7), fill=LINE, width=1)
 
     example = f"第{index}部第1号" if index is not None else "第1号"
