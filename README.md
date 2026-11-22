@@ -38,7 +38,7 @@
 
 ## 代码来源
 
-本插件由 Zdram 从自己编写的 astrbot_plugin_bilibili_dl 插件中拆出，并继续独立维护。
+本插件由 astrbot_plugin_bilibili_dl 插件中拆出，并继续独立维护。
 
 ## 许可证
 
