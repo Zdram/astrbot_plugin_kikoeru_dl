@@ -1870,7 +1870,7 @@ class KikoeruDownloadTool(FunctionTool[AstrAgentContext]):
     "kikoeru_dl",
     "音声下载（KikoFlu）",
     "让AI检索KikoFlu音声库的中文字幕作品，并按音轨发送内嵌字幕的 MP3、WAV 或 MP4",
-    "1.6.1",
+    "1.6.2",
     "",
 )
 class KikoeruPlugin(Star):
