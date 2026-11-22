@@ -40,6 +40,10 @@
 
 本插件由 astrbot_plugin_bilibili_dl 插件中拆出，并继续独立维护。
 
+## 相关项目
+
+- [KikoFlu（pa-jesusf）](https://github.com/pa-jesusf/KikoFlu) 是跨平台音声客户端，采用 [GPL-3.0](https://github.com/pa-jesusf/KikoFlu/blob/main/LICENSE)。本插件连接与 KikoFlu 兼容的后端，也可在同一 Windows 用户下读取已启用的 KikoFlu 客户端配置。
+
 ## 许可证
 
 版权所有 (C) 2026 Zdram。
