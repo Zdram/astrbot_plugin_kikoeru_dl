@@ -38,4 +38,10 @@
 
 ## 代码来源
 
-本插件从本地的 astrbot_plugin_bilibili_dl 插件中拆出 KikoFlu 功能。当前保留这一来源说明。同名备份的元数据仅标注 local，未附公开仓库或许可证。公开发行前需要确认原代码的公开许可，并填入实际 GitHub 仓库地址。
+本插件由 Zdram 从自己编写的 astrbot_plugin_bilibili_dl 插件中拆出，并继续独立维护。
+
+## 许可证
+
+版权所有 (C) 2026 Zdram。
+
+本仓库的插件代码采用 [GNU Affero General Public License v3.0 或任何后续版本](LICENSE)（AGPL-3.0-or-later）。插件访问的音声、封面和字幕各自适用其权利人的许可。
