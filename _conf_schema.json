@@ -1,0 +1,62 @@
+{
+    "kikoeru_url": {
+        "description": "KikoFlu 后端地址",
+        "hint": "填写兼容 kikoeru-express 的后端地址。也可以在本机 Windows 启用 KikoFlu 配置读取。",
+        "type": "string",
+        "default": ""
+    },
+    "kikoeru_token": {
+        "description": "KikoFlu 登录 token",
+        "hint": "后端需要登录时填自己的 token。仅发送到配置的后端源。",
+        "type": "string",
+        "default": ""
+    },
+    "kikoeru_proxy": {
+        "description": "KikoFlu 后端代理地址",
+        "hint": "留空直连。仅在 AstrBot 环境需要代理时填写，例如 http://proxy:8080。",
+        "type": "string",
+        "default": ""
+    },
+    "kikoeru_default_format": {
+        "description": "默认下载格式",
+        "hint": "单条或批量下载音轨时使用。聊天里明确指定的格式优先。",
+        "obvious_hint": true,
+        "type": "string",
+        "options": [
+            "mp4",
+            "mp3",
+            "wav"
+        ],
+        "labels": [
+            "MP4",
+            "MP3",
+            "WAV"
+        ],
+        "default": "mp4"
+    },
+    "kikoeru_excluded_tags": {
+        "description": "排除标签",
+        "hint": "每项填一个完整标签名。匹配原名或后端提供的译名。命中任一项的作品会从列表中过滤，直查和下载也会拦截。留空不排除。",
+        "obvious_hint": true,
+        "type": "list",
+        "default": []
+    },
+    "kikoeru_download_dir": {
+        "description": "KikoFlu 作品下载目录",
+        "hint": "留空时使用插件数据目录下的 library 子目录。",
+        "type": "string",
+        "default": ""
+    },
+    "kikoeru_use_local_preferences": {
+        "description": "读取本机 Windows 的 KikoFlu 配置",
+        "hint": "仅限 AstrBot 和 KikoFlu 使用同一 Windows 用户。默认关闭，且不会借用其他后端的凭据。",
+        "type": "bool",
+        "default": false
+    },
+    "kikoeru_media_origins": {
+        "description": "额外媒体地址白名单",
+        "hint": "自托管后端使用独立 CDN 时填写其 HTTPS 源。下载媒体时不会向这些源转发后端 token 或 Cookie。",
+        "type": "list",
+        "default": []
+    }
+}
