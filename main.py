@@ -31,12 +31,12 @@ logger = logging.getLogger("astrbot_plugin_kikoeru_dl")
 _PLUGIN_NAME = "astrbot_plugin_kikoeru_dl"
 _KIKOERU_OUTPUT_FORMATS = ("mp4", "mp3", "wav")
 _KIKOERU_NO_EFFECTS = (
-    r"无(?:se|音效|效果音?|効果音?)|無(?:se|音效|效果音?|効果音?)|"
+    r"(?:无|無|不含|不带|不帶)(?:[\s_-]*)(?:se|音效|效果音?|効果音?)|"
     r"(?:效果音|効果音)(?:なし|無し|なし版)|se(?:なし|無し|无|無|カット)|"
     r"se[ _-]*cut|no[ _-]*(?:se|sfx)|without[ _-]*(?:se|sfx)"
 )
 _KIKOERU_WITH_EFFECTS = (
-    r"(?:有se|有音效|有效果音?|有効果音?|seあり|se有|(?:效果音|効果音)(?:あり|入り)|"
+    r"(?:(?:有|含|带|帶)(?:[\s_-]*)(?:se|音效|效果音?|効果音?)|seあり|se有|(?:效果音|効果音)(?:あり|入り)|"
     r"with[ _-]*(?:se|sfx))"
 )
 
@@ -918,8 +918,14 @@ def _kikoeru_group_tracks(rows: list[dict]) -> list[dict]:
     Returns:
         Numberable tracks with a display title and their source variants.
     """
-    variant_marker = rf"(?:{_KIKOERU_NO_EFFECTS}|{_KIKOERU_WITH_EFFECTS}|mp3|wav)"
+    format_marker = r"(?:mp3|wav)"
+    effects_marker = rf"(?:{_KIKOERU_NO_EFFECTS}|{_KIKOERU_WITH_EFFECTS})"
     version = r"(?:[\s_-]*(?:版|版本|音源|ver\.?|version))?"
+    separator = r"[\s_+\-·:]*"
+    variant_marker = (
+        rf"(?:{format_marker}{version}{separator}{effects_marker}"
+        rf"|{effects_marker}{version}{separator}{format_marker}|{format_marker}|{effects_marker})"
+    )
     folder_variant = re.compile(
         rf"(?:\d+[\s:_\-.]+)?{variant_marker}{version}(?:\s*\([^)]*\))?",
         re.IGNORECASE,
