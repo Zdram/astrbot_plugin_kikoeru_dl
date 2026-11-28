@@ -139,6 +139,7 @@ def render_work_card(
     info = "  ·  ".join(
         value
         for value in (
+            item.get("kikoeru_rj"),
             item.get("circle"),
             item.get("duration"),
             item.get("kikoeru_lang"),

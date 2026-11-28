@@ -536,6 +536,7 @@ def _kikoeru_result_from_work(work: dict, direct: bool = False) -> dict:
         pass
     has_sub, has_chi = _kikoeru_work_lang_flags(work)
     tags, aliases = _kikoeru_work_tags(work)
+    rj = _kikoeru_normalize_rj(str(work.get("source_id") or work.get("original_workno") or ""))
     return {
         "title": display,
         "work_title": title,
@@ -546,6 +547,7 @@ def _kikoeru_result_from_work(work: dict, direct: bool = False) -> dict:
         "tags": tags,
         "tag_aliases": sorted(aliases),
         "kikoeru_work_id": wid,
+        "kikoeru_rj": rj.upper() if rj else "",
         "kikoeru_direct": bool(direct),
         "kikoeru_has_subtitle": has_sub,
         "kikoeru_lang": "中字" if has_chi else ("日字" if has_sub else "无字幕"),
@@ -926,8 +928,10 @@ def _kikoeru_group_tracks(rows: list[dict]) -> list[dict]:
         rf"(?:{format_marker}{version}{separator}{effects_marker}"
         rf"|{effects_marker}{version}{separator}{format_marker}|{format_marker}|{effects_marker})"
     )
+    quality_note = r"(?:压缩格式|壓縮格式|最高品[质質]|高品[质質]|推荐|推薦|无损|無損)"
     folder_variant = re.compile(
-        rf"(?:\d+[\s:_\-.]+)?{variant_marker}{version}(?:\s*\([^)]*\))?",
+        rf"(?:\d+[\s:_\-.]+)?{variant_marker}{version}"
+        rf"(?:\s*(?:\([^)]*\)|【\s*{quality_note}(?:[\s・·、]+{quality_note})*\s*】))?",
         re.IGNORECASE,
     )
     packaged_main_folder = re.compile(
