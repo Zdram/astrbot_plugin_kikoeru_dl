@@ -61,7 +61,7 @@ FFmpeg 需要在系统 `PATH` 里，或者装在 `C:\ffmpeg\bin`、`D:\ffmpeg\bi
 - **手动填写：** 在插件配置页填写「KikoFlu 后端地址」和「KikoFlu 登录 token」，例如 `https://api.asmr-200.com`
 
 > [!TIP]
-> 插件默认通过 `http://127.0.0.1:10090` 代理访问后端，代理不可用时会自动改为直连。如果你的代理在别的端口，记得在配置里改成自己的地址。
+> 「KikoFlu 后端代理地址」默认留空，插件会直接连接后端。仅在 AstrBot 所在环境需要代理时填写，例如 `http://proxy:8080`。
 
 ### 4. 开始使用
 
@@ -116,7 +116,7 @@ FFmpeg 需要在系统 `PATH` 里，或者装在 `C:\ffmpeg\bin`、`D:\ffmpeg\bi
 | --- | --- | --- |
 | `kikoeru_url` | 留空 | 后端地址，留空自动读取 KikoFlu 客户端配置 |
 | `kikoeru_token` | 留空 | 登录 token，留空自动读取 KikoFlu 客户端配置 |
-| `kikoeru_proxy` | `http://127.0.0.1:10090` | 访问后端用的代理，失败自动直连 |
+| `kikoeru_proxy` | 留空 | 留空直连。填写后使用指定代理。 |
 | `kikoeru_default_format` | `mp4` | 默认下载格式：`mp4` / `mp3` / `wav` |
 | `kikoeru_excluded_tags` | 空 | 排除标签，每项一个完整标签名，匹配原名或后端译名 |
 | `kikoeru_download_dir` | 留空 | 整部保存目录，留空使用 KikoFlu 的下载目录（未设置则为 `Documents/downloads`） |
@@ -137,7 +137,7 @@ FFmpeg 需要在系统 `PATH` 里，或者装在 `C:\ffmpeg\bin`、`D:\ffmpeg\bi
 
 <br>
 
-官方后端偶尔会连接超时，插件会先走代理、失败后再直连。如果你的代理不在 `127.0.0.1:10090`，把「后端代理地址」改成你自己的代理地址，可以省掉每次先失败再直连的等待。
+如果直连后端经常超时，且 AstrBot 所在环境需要通过代理访问，可在「KikoFlu 后端代理地址」填写可用的代理。启用代理后，只有 GET 请求遇到连接错误或超时时会重试一次直连。
 
 </details>
 
