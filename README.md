@@ -11,7 +11,7 @@
 在聊天里检索 KikoFlu 音声库的中文字幕作品，按音轨发送内嵌字幕的 MP4 / MP3 / WAV
 
 [![AstrBot Plugin](https://img.shields.io/badge/AstrBot-Plugin-1b5e4a?style=flat-square)](https://github.com/AstrBotDevs/AstrBot)
-[![Version](https://img.shields.io/badge/version-v1.6.2-b93928?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-v1.6.3-b93928?style=flat-square)](https://github.com/Zdram/astrbot_plugin_kikoeru_dl/releases/tag/v1.6.3)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Backend](https://img.shields.io/badge/backend-kikoeru--express_API-6b4fbb?style=flat-square)](https://github.com/kikoeru-project/kikoeru-express)
 [![FFmpeg](https://img.shields.io/badge/requires-FFmpeg-007808?style=flat-square&logo=ffmpeg&logoColor=white)](https://ffmpeg.org/)
